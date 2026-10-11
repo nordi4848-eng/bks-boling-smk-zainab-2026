@@ -306,6 +306,9 @@ const MEN=new Set(["Hanif","Sick","Azizi","Nazri","Mohd Nor","Zahari","Wan M. Kh
 const KEY="bks26-v5";
 let scores={}; try{scores=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
 let page="home", editTeam=0, rankTab="trio";
+const GOOGLE_SHEET_URL="https://docs.google.com/spreadsheets/d/1cFrCqccI-_Tbq7laumO0eN6fV8mzg4QTQbyv0BNe5Eo/edit";
+const GOOGLE_SHEET_CSV="https://docs.google.com/spreadsheets/d/1cFrCqccI-_Tbq7laumO0eN6fV8mzg4QTQbyv0BNe5Eo/gviz/tq?tqx=out:csv&sheet=SKOR";
+let sheetLanes={}, sheetConnected=false, lastSheetSync="";
 const $=x=>document.getElementById(x);
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -330,7 +333,56 @@ function indivRanks(gender){
     ...p,total:p.raw+(gender==="women"?10:0),hand:gender==="women"?10:0
   })).sort((a,b)=>b.total-a.total || a.name.localeCompare(b.name));
 }
-function lane(i){return localStorage.getItem("bkslane"+i)||""}
+function lane(i){return sheetLanes[i] || localStorage.getItem("bkslane"+i) || ""}
+
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(c=='"'){
+      if(q && n=='"'){cell+='"';i++}
+      else q=!q;
+    }else if(c==',' && !q){row.push(cell);cell=""}
+    else if((c=='\n'||c=='\r') && !q){
+      if(c=='\r' && n=='\n') i++;
+      row.push(cell); rows.push(row); row=[]; cell="";
+    }else cell+=c;
+  }
+  if(cell.length || row.length){row.push(cell);rows.push(row)}
+  return rows;
+}
+async function syncGoogleSheet(){
+  try{
+    const r=await fetch(GOOGLE_SHEET_CSV+"&_="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const rows=parseCSV(await r.text());
+    const head=rows.findIndex(x=>x[0]==="Nama" && x[1]==="Trio");
+    if(head<0) throw new Error("Header SKOR tidak dijumpai");
+    let changed=false;
+    for(const row of rows.slice(head+1)){
+      const name=(row[0]||"").trim();
+      if(!name) continue;
+      const team=(Number(row[1])||0)-1;
+      const ln=(row[3]||"").trim();
+      const g1=Number(row[4])||0, g2=Number(row[5])||0;
+      if(team>=0 && ln) sheetLanes[team]=ln;
+      if(name && (g1>0 || g2>0)){
+        const old=getScore(name);
+        if(old[0]!==g1 || old[1]!==g2) changed=true;
+        scores[name]=[g1,g2];
+      }
+    }
+    sheetConnected=true;
+    lastSheetSync=new Date().toLocaleTimeString("ms-MY",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    if(changed) localStorage.setItem(KEY,JSON.stringify(scores));
+    render();
+  }catch(e){
+    sheetConnected=false;
+    console.warn("Google Sheet sync gagal:",e);
+    render();
+  }
+}
+
 function go(p){page=p;render();scrollTo({top:0,behavior:"smooth"})}
 function setEdit(i){editTeam=i;render()}
 function saveScores(){
@@ -397,6 +449,12 @@ function render(){
         <button onclick="alert('Makluman kejohanan akan dipaparkan di sini.')"><i>📣</i>Makluman</button>
       </div>
       <div class="notice">📣 Kejohanan Boling BKS 2026 Sedang Berlangsung!</div>
+      <div class="panel" style="padding:10px 12px;margin-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b id="sheetStatus">${sheetConnected?"🟢 GOOGLE SHEET LIVE":"🟠 GOOGLE SHEET BELUM DISAMBUNG"}</b>
+          <small>${lastSheetSync?("Sync "+lastSheetSync):"Auto sync setiap 15 saat"}</small>
+        </div>
+      </div>
       <div class="board">
         <div class="board-head"><h2>🏆 TOP 3 LIVE</h2><button class="more" onclick="go('ranking')">LIHAT SEMUA ›</button></div>
         <div class="top3">${top3Home()}</div>
@@ -415,6 +473,8 @@ function render(){
   }
   else if(page==="scores"){
     c.innerHTML=`<div class="panel"><h2>🎳 Masukkan Skor</h2>
+      <button class="primary" style="margin-bottom:10px" onclick="window.open(GOOGLE_SHEET_URL,'_blank')">📗 BUKA GOOGLE SHEET SKOR</button>
+      <p class="muted" style="margin-top:0">Skor dari Google Sheet akan masuk ke app secara automatik. Borang di bawah kekal sebagai backup manual.</p>
       <div class="tabs">${T.map((_,i)=>`<button class="${i===editTeam?"active":""}" onclick="setEdit(${i})">Trio ${i+1}</button>`).join("")}</div>
       <p><b>TRIO ${editTeam+1}</b></p>
       <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center"><b>Lane</b><input id="lane" class="laneinput" value="${esc(lane(editTeam))}"></div>
@@ -440,6 +500,9 @@ function render(){
   }
 }
 render();
+setTimeout(syncGoogleSheet,800);
+setInterval(syncGoogleSheet,15000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden) syncGoogleSheet()});
 </script>
 
 <script>
