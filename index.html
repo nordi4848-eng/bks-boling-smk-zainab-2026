@@ -373,27 +373,82 @@ function parseCSV(text){
   if(cell.length || row.length){row.push(cell);rows.push(row)}
   return rows;
 }
+const GOOGLE_SHEET_JSONP="https://docs.google.com/spreadsheets/d/1cFrCqccI-_Tbq7laumO0eN6fV8mzg4QTQbyv0BNe5Eo/gviz/tq?sheet=SKOR&range=A5:I37&headers=0&tqx=out:json;responseHandler:BKS_GS_CB";
+
+function loadGoogleSheetJSONP(){
+  return new Promise((resolve,reject)=>{
+    const prev=document.getElementById("bksGsJsonp");
+    if(prev) prev.remove();
+
+    let finished=false;
+    const cleanup=()=>{
+      const el=document.getElementById("bksGsJsonp");
+      if(el) el.remove();
+      clearTimeout(timer);
+    };
+
+    window.BKS_GS_CB=(resp)=>{
+      if(finished) return;
+      finished=true;
+      cleanup();
+      try{ delete window.BKS_GS_CB; }catch(_){}
+      if(!resp || resp.status==="error"){
+        reject(new Error("Google Sheet response error"));
+        return;
+      }
+      resolve(resp);
+    };
+
+    const s=document.createElement("script");
+    s.id="bksGsJsonp";
+    s.async=true;
+    s.onerror=()=>{
+      if(finished) return;
+      finished=true;
+      cleanup();
+      reject(new Error("Google Sheet script load gagal"));
+    };
+    s.src=GOOGLE_SHEET_JSONP+"&_="+Date.now();
+    document.head.appendChild(s);
+
+    const timer=setTimeout(()=>{
+      if(finished) return;
+      finished=true;
+      cleanup();
+      reject(new Error("Google Sheet sync timeout"));
+    },8000);
+  });
+}
+
+function gsVal(c){
+  return c && c.v!==undefined && c.v!==null ? c.v : "";
+}
+
 async function syncGoogleSheet(){
   try{
-    const r=await fetch(GOOGLE_SHEET_CSV+"&_="+Date.now(),{cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const rows=parseCSV(await r.text());
-    const head=rows.findIndex(x=>x[0]==="Nama" && x[1]==="Trio");
-    if(head<0) throw new Error("Header SKOR tidak dijumpai");
+    const resp=await loadGoogleSheetJSONP();
+    const rows=((resp.table&&resp.table.rows)||[]).map(r=>{
+      const c=r.c||[];
+      return Array.from({length:9},(_,i)=>gsVal(c[i]));
+    });
+
     let changed=false;
-    for(const row of rows.slice(head+1)){
-      const name=(row[0]||"").trim();
+    for(const row of rows){
+      const name=String(row[0]||"").trim();
       if(!name) continue;
+
       const team=(Number(row[1])||0)-1;
-      const ln=(row[3]||"").trim();
-      const g1=Number(row[4])||0, g2=Number(row[5])||0;
+      const ln=String(row[3]||"").trim();
+      const g1=Number(row[4])||0;
+      const g2=Number(row[5])||0;
+
       if(team>=0 && ln) sheetLanes[team]=ln;
-      if(name && (g1>0 || g2>0)){
-        const old=getScore(name);
-        if(old[0]!==g1 || old[1]!==g2) changed=true;
-        scores[name]=[g1,g2];
-      }
+
+      const old=getScore(name);
+      if(old[0]!==g1 || old[1]!==g2) changed=true;
+      scores[name]=[g1,g2];
     }
+
     sheetConnected=true;
     lastSheetSync=new Date().toLocaleTimeString("ms-MY",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
     if(changed) localStorage.setItem(KEY,JSON.stringify(scores));
@@ -487,7 +542,7 @@ function render(){
       <div class="notice">📣 Kejohanan Boling BKS 2026 Sedang Berlangsung!</div>
       <div class="panel" style="padding:10px 12px;margin-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <b id="sheetStatus">${sheetConnected?"🟢 GOOGLE SHEET LIVE":"🟠 GOOGLE SHEET AKSES BELUM DIBUKA"}</b>
+          <b id="sheetStatus">${sheetConnected?"🟢 GOOGLE SHEET LIVE":"🟠 GOOGLE SHEET SYNC GAGAL"}</b>
           <small>${lastSheetSync?("Sync "+lastSheetSync):"Auto sync setiap 15 saat"}</small>
         </div>
       </div>
