@@ -44,15 +44,12 @@ button{cursor:pointer}
   position:absolute;left:18px;bottom:14px;z-index:4;background:#e9f4ff;color:#12315f;
   padding:7px 16px;border-radius:999px;font-weight:900;font-size:12px
 }
-.bowling-art{position:absolute;right:4px;bottom:0;width:36%;height:58%;z-index:2}
-.bowling-art img{position:absolute;right:0;bottom:0;width:100%;height:100%;object-fit:contain;object-position:right bottom;filter:drop-shadow(0 7px 7px #001d4e66)}
-.smallball{
-  position:absolute;right:17px;bottom:12px;width:70px;height:70px;border-radius:50%;
-  background:radial-gradient(circle at 35% 25%,#7994ac,#263d58 38%,#0a1221 73%);
-  border:2px solid #9bc6ed;box-shadow:0 7px 13px #001d4e88;z-index:4
-}
-.smallball i{position:absolute;background:#07101e;border-radius:50%;width:10px;height:13px}
-.smallball i:nth-child(1){left:21px;top:20px}.smallball i:nth-child(2){left:39px;top:18px}.smallball i:nth-child(3){left:31px;top:37px}
+.hero-deco{position:absolute;right:0;top:0;width:44%;height:100%;z-index:1;overflow:hidden}
+.hero-deco:before{content:"";position:absolute;right:-22px;top:26px;width:155px;height:155px;border-radius:50%;background:radial-gradient(circle,#71d6ff55 0 22%,transparent 24%);box-shadow:0 0 50px #5bc9ff88}
+.lane{position:absolute;right:-18px;width:185px;height:18px;border-radius:20px;transform:rotate(-28deg);background:linear-gradient(90deg,transparent,#ffffff22,#ffffff75,#ffffff12);filter:blur(.2px)}
+.lane1{top:66px}.lane2{top:112px;right:-2px}.lane3{top:160px;right:-28px}
+.glow-ring{position:absolute;border:2px solid #ffffff55;border-radius:50%}
+.ring1{width:190px;height:190px;right:-72px;bottom:-36px}.ring2{width:115px;height:115px;right:18px;bottom:20px;border-color:#ffe67866}
 .ticker{
   background:#ffe472;color:#112f68;white-space:nowrap;overflow:hidden;
   font-weight:900;border-top:1px solid #f2d461;border-bottom:1px solid #f2d461
@@ -147,9 +144,12 @@ main{padding:12px}
       <h2>BADAN KEBAJIKAN STAF</h2>
       <h3>SMK ZAINAB 2026</h3>
     </div>
-    <div class="bowling-art">
-      <img src="two-pins.jpg" alt="Pin boling">
-      <span class="smallball"><i></i><i></i><i></i></span>
+    <div class="hero-deco" aria-hidden="true">
+      <span class="lane lane1"></span>
+      <span class="lane lane2"></span>
+      <span class="lane lane3"></span>
+      <span class="glow-ring ring1"></span>
+      <span class="glow-ring ring2"></span>
     </div>
     <div class="meta-pill">MIX TRIO • 11 PASUKAN • 2 GAME</div>
   </header>
@@ -170,7 +170,7 @@ const T=[
 const MEN=new Set(["Hanif","Sick","Azizi","Nazri","Mohd Nor","Zahari","Wan M. Khuzaimi","Zawawi","Dahlam","Eifham Syah","WerL","Fadli","Nordi"]);
 const KEY="bks26-v5";
 let scores={}; try{scores=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
-let page="home", editTeam=0;
+let page="home", editTeam=0, rankTab="trio";
 const $=x=>document.getElementById(x);
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -238,7 +238,7 @@ function rankSection(kind,title){
     </table>
   </section>`;
 }
-function scrollRank(id){document.getElementById("rank-"+id)?.scrollIntoView({behavior:"smooth",block:"start"})}
+function setRankTab(id){rankTab=id;render()}
 function highCards(){
   return ["men","women"].map(g=>{
     const p=people().filter(x=>x.gender===g).flatMap(x=>x.games.map((score,i)=>({...x,score,game:i+1})))
@@ -289,16 +289,15 @@ function render(){
     </div>`;
   }
   else if(page==="ranking"){
+    const title = rankTab==="trio" ? "🎳 Trio" : rankTab==="men" ? "🎳 Individu Lelaki" : "🎳 Individu Wanita";
     c.innerHTML=`<div class="panel">
       <h2>📊 Ranking Live</h2>
       <div class="tabs">
-        <button onclick="scrollRank('trio')">Trio</button>
-        <button onclick="scrollRank('men')">Individu Lelaki</button>
-        <button onclick="scrollRank('women')">Individu Wanita</button>
+        <button class="${rankTab==='trio'?'active':''}" onclick="setRankTab('trio')">Trio</button>
+        <button class="${rankTab==='men'?'active':''}" onclick="setRankTab('men')">Individu Lelaki</button>
+        <button class="${rankTab==='women'?'active':''}" onclick="setRankTab('women')">Individu Wanita</button>
       </div>
-      ${rankSection("trio","🎳 Trio")}
-      ${rankSection("men","🎳 Individu Lelaki")}
-      ${rankSection("women","🎳 Individu Wanita")}
+      ${rankSection(rankTab,title)}
     </div>`;
   }
   else{
