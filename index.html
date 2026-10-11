@@ -54,7 +54,7 @@ main{padding:12px}
 .more{
   border:0;background:white;color:#0e59b0;border-radius:999px;padding:8px 13px;font-weight:900;font-size:11px
 }
-.top3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}
+.top3{display:flex;flex-direction:column;gap:12px;margin-top:14px}
 .topcard{
   border-radius:20px;padding:12px 6px 13px;text-align:center;color:#143264;font-weight:900;
   min-height:180px;border:2px solid #ffffff66
@@ -265,6 +265,19 @@ main{padding:12px}
   #bksIntro *{animation-duration:.01ms!important;animation-delay:0ms!important}
 }
 
+
+.top3group{border-radius:20px;padding:12px;background:#ffffff22;border:1px solid #ffffff38}
+.top3group .gtitle{font-weight:1000;font-size:15px;color:#fff;margin:0 0 8px;text-transform:uppercase;letter-spacing:.3px}
+.top3row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.top3mini{min-width:0;border-radius:17px;padding:10px 6px;text-align:center;box-shadow:inset 0 0 0 1px #ffffff88}
+.top3mini.trio{background:#cfeeff}.top3mini.men{background:#d7f5df}.top3mini.women{background:#ffd9e9}
+.top3mini .pos{font-size:24px;line-height:1}
+.top3mini .nm{margin-top:6px;font-size:12px;font-weight:900;color:#12396a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top3mini .sc{margin-top:4px;font-size:22px;font-weight:1000;color:#0a2f68}
+@media(max-width:390px){
+  .top3mini{padding:9px 4px}.top3mini .nm{font-size:11px}.top3mini .sc{font-size:20px}
+}
+
 </style>
 </head>
 <body>
@@ -397,12 +410,26 @@ function topWinner(kind){
   const arr=kind==="trio"?trioRanks():indivRanks(kind);
   return arr.find(x=>x.total>0);
 }
-function top3Home(){
-  const specs=[["trio","TRIO","🥇"],["men","INDIVIDU LELAKI","🥈"],["women","INDIVIDU WANITA","🥉"]];
-  return specs.map(([k,label,medal])=>{
-    const x=topWinner(k);
-    return `<div class="topcard ${k}"><div class="medal">${medal}</div><h3>${label}</h3><p>${x?esc(x.name):"Belum ada skor"}</p><strong>${x?x.total:"—"}</strong></div>`;
+function top3Group(kind,label){
+  const arr=(kind==="trio"?trioRanks():indivRanks(kind)).filter(x=>x.total>0).slice(0,3);
+  const medals=["🥇","🥈","🥉"];
+  const cards=[0,1,2].map(i=>{
+    const x=arr[i];
+    return `<div class="top3mini ${kind}">
+      <div class="pos">${medals[i]}</div>
+      <div class="nm">${x?esc(x.name):"Belum ada skor"}</div>
+      <div class="sc">${x?x.total:"—"}</div>
+    </div>`;
   }).join("");
+  return `<div class="top3group ${kind}">
+    <div class="gtitle">${label}</div>
+    <div class="top3row">${cards}</div>
+  </div>`;
+}
+function top3Home(){
+  return top3Group("trio","TRIO • TOP 3")+
+         top3Group("men","INDIVIDU LELAKI • TOP 3")+
+         top3Group("women","INDIVIDU WANITA • TOP 3");
 }
 function rankSection(kind,title){
   const a=kind==="trio"?trioRanks():indivRanks(kind);
@@ -451,7 +478,7 @@ function render(){
       <div class="notice">📣 Kejohanan Boling BKS 2026 Sedang Berlangsung!</div>
       <div class="panel" style="padding:10px 12px;margin-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <b id="sheetStatus">${sheetConnected?"🟢 GOOGLE SHEET LIVE":"🟠 GOOGLE SHEET BELUM DISAMBUNG"}</b>
+          <b id="sheetStatus">${sheetConnected?"🟢 GOOGLE SHEET LIVE":"🟠 GOOGLE SHEET AKSES BELUM DIBUKA"}</b>
           <small>${lastSheetSync?("Sync "+lastSheetSync):"Auto sync setiap 15 saat"}</small>
         </div>
       </div>
