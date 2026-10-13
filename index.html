@@ -111,6 +111,13 @@ main{padding:12px}
 }
 .bottom button{border:0;background:transparent;color:#526d93;font-weight:900;font-size:10px}
 .bottom button span{display:block;font-size:24px}.bottom .active{color:#0671e7}
+
+.rules-list{display:grid;gap:10px;margin-top:10px}
+.rule-item{display:grid;grid-template-columns:36px 1fr;gap:10px;align-items:start;background:linear-gradient(145deg,#f7fbff,#eaf4ff);border:1px solid #c5dcf6;border-radius:16px;padding:12px;box-shadow:0 4px 12px #0b54a812}
+.rule-no{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#0e7be8,#094fa6);color:white;font-weight:1000;box-shadow:0 4px 9px #0d62bd40}
+.rule-item b{color:#0b4f9f}.rule-item p{margin:2px 0 0;line-height:1.45;color:#2b4568;font-weight:650;font-size:13px}
+.rule-highlight{background:linear-gradient(135deg,#fff7cf,#ffe69a);border-color:#f2cf59}
+.rule-highlight .rule-no{background:linear-gradient(145deg,#f3b51b,#d88c00)}
 @media(max-width:420px){
   .hero{min-height:275px}  }
 
@@ -607,17 +614,18 @@ function highCards(){
 }
 
 function render(){
-  const nav=[["home","🏠","Utama"],["teams","👥","Trio"],["scores","🎳","Skor"],["ranking","📊","Ranking"],["high","🏆","High Score"]];
+  const nav=[["home","🏠","Utama"],["teams","👥","Trio"],["scores","🎳","Skor"],["ranking","📊","Ranking"],["rules","📜","Peraturan"],["high","🏆","High Score"]];
   $("nav").innerHTML=nav.map(([p,i,l])=>`<button class="${page===p?"active":""}" onclick="go('${p}')"><span>${i}</span>${l}</button>`).join("");
   const c=$("content");
 
   if(page==="home"){
     c.innerHTML=`
-      <div class="tiles">
+      <div class="tiles" style="grid-template-columns:repeat(3,1fr)">
         <button onclick="go('home')"><i>🏆</i>Utama</button>
         <button onclick="go('teams')"><i>👥</i>Trio</button>
         <button onclick="go('scores')"><i>🎳</i>Skor</button>
         <button onclick="go('ranking')"><i>📊</i>Ranking</button>
+        <button onclick="go('rules')"><i>📜</i>Peraturan</button>
         <button onclick="alert('Makluman kejohanan akan dipaparkan di sini.')"><i>📣</i>Makluman</button>
       </div>
       <div class="notice">📣 Kejohanan Boling BKS 2026 Sedang Berlangsung!</div>
@@ -667,6 +675,19 @@ function render(){
       </div>
       ${rankSection(rankTab,title)}
     </div>`;
+  }
+  else if(page==="rules"){
+    const rules=[
+      ["1","Format Permainan","Setiap peserta akan bermain sebanyak <b>2 game</b>."],
+      ["2","Pertukaran Lorong","<b>Game 1</b> dimainkan di lorong yang telah ditetapkan. Bagi <b>Game 2</b>, peserta akan <b>bertukar lorong</b> mengikut susunan yang ditentukan oleh urus setia."],
+      ["3","Kelewatan Peserta","Peserta yang lewat lebih daripada <b>15 minit</b> atau permainan telah memasuki <b>frame ke-4</b> akan diberikan <b>Blind Score 50</b> bagi game berkenaan."],
+      ["4","Handicap Wanita","Peserta <b>wanita diberikan handicap 10 mata</b>."],
+      ["5","Penentuan Kedudukan","Kedudukan ditentukan berdasarkan <b>jumlah mata keseluruhan tertinggi</b>."],
+      ["6","Mata Seri","Sekiranya berlaku <b>mata seri</b>, kedudukan akan ditentukan berdasarkan <b>skor Game 1 yang lebih tinggi</b>."],
+      ["7","Hadiah Kedudukan","Hadiah disediakan untuk <b>tempat pertama hingga ketiga</b> bagi kategori <b>Trio, Individu Lelaki (IL)</b> dan <b>Individu Wanita (IW)</b>."],
+      ["8","High Score","Hadiah <b>High Score Lelaki</b> dan <b>High Score Wanita</b> disediakan berdasarkan <b>skor satu game tertinggi</b>."]
+    ];
+    c.innerHTML=`<div class="panel"><h2>📜 Peraturan Kejohanan</h2><p class="muted" style="font-size:12px">KEJOHANAN BOLING TENPIN BKS SMK ZAINAB 2026</p><div class="rules-list">${rules.map((r,i)=>`<div class="rule-item ${i===3?'rule-highlight':''}"><div class="rule-no">${r[0]}</div><div><b>${r[1]}</b><p>${r[2]}</p></div></div>`).join("")}</div></div>`;
   }
   else{
     c.innerHTML=`<div class="panel"><h2>🏆 High Score</h2><div class="high">${highCards()}</div></div>`;
